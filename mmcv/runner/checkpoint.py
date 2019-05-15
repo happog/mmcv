@@ -1,10 +1,31 @@
 import os.path as osp
+import pkgutil
 import time
 from collections import OrderedDict
+from importlib import import_module
 
 import mmcv
 import torch
 from torch.utils import model_zoo
+
+
+open_mmlab_model_urls = {
+    'vgg16_caffe': 'https://s3.ap-northeast-2.amazonaws.com/open-mmlab/pretrain/third_party/vgg16_caffe-292e1171.pth',  # noqa: E501
+    'resnet50_caffe': 'https://s3.ap-northeast-2.amazonaws.com/open-mmlab/pretrain/third_party/resnet50_caffe-788b5fa3.pth',  # noqa: E501
+    'resnet101_caffe': 'https://s3.ap-northeast-2.amazonaws.com/open-mmlab/pretrain/third_party/resnet101_caffe-3ad79236.pth',  # noqa: E501
+    'resnext50_32x4d': 'https://s3.ap-northeast-2.amazonaws.com/open-mmlab/pretrain/third_party/resnext50-32x4d-0ab1a123.pth',  # noqa: E501
+    'resnext101_32x4d': 'https://s3.ap-northeast-2.amazonaws.com/open-mmlab/pretrain/third_party/resnext101_32x4d-a5af3160.pth',  # noqa: E501
+    'resnext101_64x4d': 'https://s3.ap-northeast-2.amazonaws.com/open-mmlab/pretrain/third_party/resnext101_64x4d-ee2c6f71.pth',  # noqa: E501
+    'contrib/resnet50_gn': 'https://s3.ap-northeast-2.amazonaws.com/open-mmlab/pretrain/third_party/resnet50_gn_thangvubk-ad1730dd.pth',  # noqa: E501
+    'detectron/resnet50_gn': 'https://s3.ap-northeast-2.amazonaws.com/open-mmlab/pretrain/third_party/resnet50_gn-9186a21c.pth',  # noqa: E501
+    'detectron/resnet101_gn': 'https://s3.ap-northeast-2.amazonaws.com/open-mmlab/pretrain/third_party/resnet101_gn-cac0ab98.pth',  # noqa: E501
+    'jhu/resnet50_gn_ws': 'https://s3.ap-northeast-2.amazonaws.com/open-mmlab/pretrain/third_party/resnet50_gn_ws-15beedd8.pth',  # noqa: E501
+    'jhu/resnet101_gn_ws': 'https://s3.ap-northeast-2.amazonaws.com/open-mmlab/pretrain/third_party/resnet101_gn_ws-3e3c308c.pth',  # noqa: E501
+    'jhu/resnext50_32x4d_gn_ws': 'https://s3.ap-northeast-2.amazonaws.com/open-mmlab/pretrain/third_party/resnext50_32x4d_gn_ws-0d87ac85.pth',  # noqa: E501
+    'jhu/resnext101_32x4d_gn_ws': 'https://s3.ap-northeast-2.amazonaws.com/open-mmlab/pretrain/third_party/resnext101_32x4d_gn_ws-34ac1a9e.pth',  # noqa: E501
+    'jhu/resnext50_32x4d_gn': 'https://s3.ap-northeast-2.amazonaws.com/open-mmlab/pretrain/third_party/resnext50_32x4d_gn-c7e8b754.pth',  # noqa: E501
+    'jhu/resnext101_32x4d_gn': 'https://s3.ap-northeast-2.amazonaws.com/open-mmlab/pretrain/third_party/resnext101_32x4d_gn-ac3bb84e.pth',  # noqa: E501
+}  # yapf: disable
 
 
 def load_state_dict(module, state_dict, strict=False, logger=None):
@@ -69,7 +90,7 @@ def load_checkpoint(model,
 
     Args:
         model (Module): Module to load checkpoint.
-        filename (str): Either a filepath or URL or modelzoll://xxxxxxx.
+        filename (str): Either a filepath or URL or modelzoo://xxxxxxx.
         map_location (str): Same as :func:`torch.load`.
         strict (bool): Whether to allow different params for the model and
             checkpoint.
@@ -80,9 +101,20 @@ def load_checkpoint(model,
     """
     # load checkpoint from modelzoo or file or url
     if filename.startswith('modelzoo://'):
-        from torchvision.models.resnet import model_urls
+        import torchvision
+        model_urls = dict()
+        for _, name, ispkg in pkgutil.walk_packages(
+                torchvision.models.__path__):
+            if not ispkg:
+                _zoo = import_module('torchvision.models.{}'.format(name))
+                if hasattr(_zoo, 'model_urls'):
+                    _urls = getattr(_zoo, 'model_urls')
+                    model_urls.update(_urls)
         model_name = filename[11:]
         checkpoint = model_zoo.load_url(model_urls[model_name])
+    elif filename.startswith('open-mmlab://'):
+        model_name = filename[13:]
+        checkpoint = model_zoo.load_url(open_mmlab_model_urls[model_name])
     elif filename.startswith(('http://', 'https://')):
         checkpoint = model_zoo.load_url(filename)
     else:

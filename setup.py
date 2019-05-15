@@ -1,4 +1,6 @@
 import sys
+from io import open  # for Python 2 (identical to builtin in Python 3)
+
 from setuptools import find_packages, setup
 
 install_requires = [
@@ -11,14 +13,14 @@ if sys.version_info < (3, 4):
 
 
 def readme():
-    with open('README.rst') as f:
+    with open('README.rst', encoding='utf-8') as f:
         content = f.read()
     return content
 
 
 def get_version():
     version_file = 'mmcv/version.py'
-    with open(version_file, 'r') as f:
+    with open(version_file, 'r', encoding='utf-8') as f:
         exec(compile(f.read(), version_file, 'exec'))
     return locals()['__version__']
 
@@ -32,7 +34,7 @@ setup(
     packages=find_packages(),
     classifiers=[
         'Development Status :: 4 - Beta',
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
@@ -40,12 +42,12 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Utilities',
     ],
     url='https://github.com/open-mmlab/mmcv',
     author='Kai Chen',
     author_email='chenkaidev@gmail.com',
-    license='GPLv3',
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
     install_requires=install_requires,
